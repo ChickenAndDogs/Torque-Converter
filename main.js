@@ -1,1 +1,360 @@
-// Add JS here
+document.addEventListener('DOMContentLoaded', () => {
+    // Unit definitions
+    const units = {
+        torque: {
+            icon: 'fa-wrench',
+            base: 'N·m',
+            list: [
+                { id: 'N·m', name: 'N·m', factor: 1 },
+                { id: 'dN·m', name: 'dN·m', factor: 10 },
+                { id: 'cN·m', name: 'cN·m', factor: 100 },
+                { id: 'kgf·m', name: 'kgf·m', factor: 0.101972 },
+                { id: 'kgf·cm', name: 'kgf·cm', factor: 10.1972 },
+                { id: 'gf·cm', name: 'gf·cm', factor: 10197.2 },
+                { id: 'lbf·ft', name: 'lbf·ft', factor: 0.737562 },
+                { id: 'lbf·in', name: 'lbf·in', factor: 8.85075 },
+                { id: 'ozf·in', name: 'ozf·in', factor: 141.612 }
+            ]
+        },
+        pressure: {
+            icon: 'fa-gauge-high',
+            base: 'Pa',
+            list: [
+                { id: 'Pa', name: 'Pa', factor: 1 },
+                { id: 'kPa', name: 'kPa', factor: 0.001 },
+                { id: 'MPa', name: 'MPa', factor: 0.000001 },
+                { id: 'bar', name: 'bar', factor: 0.00001 },
+                { id: 'psi', name: 'psi', factor: 0.000145038 },
+                { id: 'atm', name: 'atm', factor: 0.0000098692 },
+                { id: 'kgf/cm2', name: 'kgf/cm²', factor: 0.000010197 }
+            ]
+        },
+        temperature: {
+            icon: 'fa-temperature-half',
+            base: 'C',
+            list: [
+                { id: 'C', name: '°C' },
+                { id: 'F', name: '°F' },
+                { id: 'K', name: 'K' }
+            ]
+        }
+    };
+
+    const transducers = [
+        { model: '2000-4-02', specRange: '5-50 In Oz', minNm: 0.0353, maxNm: 0.3531 },
+        { model: '2000-5-02', specRange: '15-200 In Oz', minNm: 0.1059, maxNm: 1.4124 },
+        { model: '2000-6-02', specRange: '4-50 In Lbs', minNm: 0.4519, maxNm: 5.6493 },
+        { model: '2000-65-02', specRange: '15-150 In Lbs', minNm: 1.6947, maxNm: 16.9478 },
+        { model: '2000-7-02', specRange: '30-400 In Lbs', minNm: 3.3895, maxNm: 45.1940 },
+        { model: '2000-8-02', specRange: '80-1000 In Lbs', minNm: 9.0387, maxNm: 112.9848 },
+        { model: '2000-10-02', specRange: '10-125 Ft Lbs', minNm: 13.5582, maxNm: 169.4771 },
+        { model: '2000-11-02', specRange: '20-250 Ft Lbs', minNm: 27.1164, maxNm: 338.9542 },
+        { model: '2000-400-02', specRange: '4 In Lbs - 250 Ft Lbs', minNm: 0.4519, maxNm: 338.9542 },
+        { model: '2000-12-02', specRange: '60-600 Ft Lbs', minNm: 81.3490, maxNm: 813.4901 },
+        { model: '2000-13-02', specRange: '100-1000 Ft Lbs', minNm: 135.5817, maxNm: 1355.8169 },
+        { model: '2000-14-02', specRange: '200-2000 Ft Lbs', minNm: 271.1634, maxNm: 2711.6336 }
+    ];
+
+    let currentTab = 'torque';
+    let currentTolerance = 4; // default 4%
+
+    // DOM Elements
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const calibrationCard = document.getElementById('calibrationCard');
+    const inputValueEl = document.getElementById('inputValue');
+    const inputUnitLabel = document.getElementById('inputUnitLabel');
+    const fromUnitSelect = document.getElementById('fromUnit');
+    const toUnitSelect = document.getElementById('toUnit');
+    const swapBtn = document.getElementById('swapUnitsBtn');
+    const resultValueEl = document.getElementById('resultValue');
+    const resultUnitLabel = document.getElementById('resultUnitLabel');
+    const resultBgIcon = document.getElementById('resultBgIcon');
+    const copyBtn = document.getElementById('copyResultBtn');
+    
+    // Calibration elements
+    const tolBtns = document.querySelectorAll('.tol-btn:not(.custom-tol-btn)');
+    const customTolBtn = document.querySelector('.custom-tol-btn');
+    const customTolInput = document.getElementById('customTolInput');
+    const calibrationTableBody = document.getElementById('calibrationTableBody');
+
+    // Initialization
+    function init() {
+        populateSelects();
+        updateUIForTab();
+        calculate();
+    }
+
+    // Format numbers with commas and up to 4 decimal places
+    function formatNumber(num) {
+        if (isNaN(num)) return '0';
+        // Avoid scientific notation for typical values, handle floats
+        let numStr = num.toFixed(4);
+        // Remove trailing zeros after decimal
+        numStr = parseFloat(numStr).toString();
+        
+        let parts = numStr.split(".");
+        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        return parts.join(".");
+    }
+
+    function formatFixed(num, decimals = 2) {
+        if (isNaN(num)) return '0.00';
+        let numStr = num.toFixed(decimals);
+        let parts = numStr.split(".");
+        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        return parts.join(".");
+    }
+
+    // Temperature Conversion logic
+    function convertTemperature(value, from, to) {
+        if (from === to) return value;
+        let celsius = value;
+        
+        // Convert to Celsius first
+        if (from === 'F') celsius = (value - 32) * 5/9;
+        else if (from === 'K') celsius = value - 273.15;
+
+        // Convert from Celsius to target
+        if (to === 'C') return celsius;
+        else if (to === 'F') return (celsius * 9/5) + 32;
+        else if (to === 'K') return celsius + 273.15;
+        
+        return value;
+    }
+
+    // Main calculation
+    function calculate() {
+        const val = parseFloat(inputValueEl.value);
+        if (isNaN(val)) {
+            resultValueEl.textContent = '0';
+            return;
+        }
+
+        const fromId = fromUnitSelect.value;
+        const toId = toUnitSelect.value;
+        let result = 0;
+
+        if (currentTab === 'temperature') {
+            result = convertTemperature(val, fromId, toId);
+        } else {
+            const unitData = units[currentTab].list;
+            const fromUnit = unitData.find(u => u.id === fromId);
+            const toUnit = unitData.find(u => u.id === toId);
+            
+            if (fromUnit && toUnit) {
+                // Convert to base unit first, then to target unit
+                const baseValue = val / fromUnit.factor;
+                result = baseValue * toUnit.factor;
+            }
+        }
+
+        resultValueEl.textContent = formatNumber(result);
+        resultUnitLabel.textContent = toId;
+        inputUnitLabel.textContent = fromId;
+        
+        if (currentTab === 'torque') {
+            updateCalibrationTable();
+        }
+    }
+
+    // Update Calibration Table
+    function updateCalibrationTable() {
+        if (currentTab !== 'torque') return;
+        
+        const val = parseFloat(inputValueEl.value);
+        const unit = fromUnitSelect.value;
+        
+        if (isNaN(val) || val <= 0) {
+            calibrationTableBody.innerHTML = '<tr><td colspan="4">올바른 값을 입력해주세요.</td></tr>';
+            return;
+        }
+
+        const points = [20, 60, 100];
+        let html = '';
+        
+        // Determine tolerance basis
+        const basisRadio = document.querySelector('input[name="toleranceBasis"]:checked');
+        const basis = basisRadio ? basisRadio.value : 'indicated';
+
+        points.forEach(percent => {
+            const target = val * (percent / 100);
+            let toleranceVal = 0;
+
+            if (basis === 'fs') {
+                // FS(100%) 기준
+                toleranceVal = val * (currentTolerance / 100);
+            } else {
+                // 지시치 기준
+                toleranceVal = target * (currentTolerance / 100);
+            }
+            
+            const min = target - toleranceVal;
+            const max = target + toleranceVal;
+
+            html += `
+                <tr>
+                    <td><span class="cal-percent-badge">${percent}%</span></td>
+                    <td>
+                        <div class="target-val">
+                            ${formatFixed(target)}
+                            <span class="target-unit">${unit}</span>
+                        </div>
+                    </td>
+                    <td class="min-val">${formatFixed(min)}</td>
+                    <td class="max-val">${formatFixed(max)}</td>
+                </tr>
+            `;
+        });
+
+        calibrationTableBody.innerHTML = html;
+        updateTransducerRecommendation();
+    }
+
+    // Update Transducer Recommendation
+    function updateTransducerRecommendation() {
+        if (currentTab !== 'torque') return;
+
+        const val = parseFloat(inputValueEl.value);
+        const fromId = fromUnitSelect.value;
+        const transducerListEl = document.getElementById('transducerList');
+
+        if (isNaN(val) || val <= 0) {
+            transducerListEl.innerHTML = '<li>올바른 값을 입력해주세요.</li>';
+            return;
+        }
+
+        const unitData = units['torque'].list;
+        const fromUnit = unitData.find(u => u.id === fromId);
+        
+        if (!fromUnit) return;
+
+        // Calculate max and min required N.m (20% to 100% of the input value)
+        const maxNm = (val / fromUnit.factor);
+        const minNm = maxNm * 0.2;
+
+        const matches = transducers.filter(t => t.minNm <= minNm && t.maxNm >= maxNm);
+
+        if (matches.length === 0) {
+            transducerListEl.innerHTML = '<li>해당 범위를 만족하는 권장 모델이 없습니다.</li>';
+        } else {
+            transducerListEl.innerHTML = matches.map(t => {
+                // Convert the transducer's min/max Nm back to the user's selected unit for display
+                const convertedMin = t.minNm * fromUnit.factor;
+                const convertedMax = t.maxNm * fromUnit.factor;
+                
+                // Format nicely (remove excessive decimals if large number, else keep some precision)
+                const formattedMin = formatFixed(convertedMin, convertedMin < 10 ? 3 : 1);
+                const formattedMax = formatFixed(convertedMax, convertedMax < 10 ? 3 : 1);
+
+                return `<li><span style="color:var(--primary-color);font-weight:bold;">${t.model}</span> : ${t.specRange} (${formattedMin} - ${formattedMax} ${fromId})</li>`;
+            }).join('');
+        }
+    }
+
+    // Populate dropdowns based on current tab
+    function populateSelects() {
+        const list = units[currentTab].list;
+        let optionsHtml = list.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
+        
+        fromUnitSelect.innerHTML = optionsHtml;
+        toUnitSelect.innerHTML = optionsHtml;
+        
+        // Set default "to" unit to something different if possible
+        if (list.length > 1) {
+            toUnitSelect.selectedIndex = 1;
+        }
+    }
+
+    // Update UI when tab changes
+    function updateUIForTab() {
+        // Update background icon
+        resultBgIcon.className = `fa-solid ${units[currentTab].icon} bg-icon`;
+        
+        // Show/hide calibration card
+        if (currentTab === 'torque') {
+            calibrationCard.style.display = 'block';
+        } else {
+            calibrationCard.style.display = 'none';
+        }
+    }
+
+    // Event Listeners
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            tabBtns.forEach(b => b.classList.remove('active'));
+            e.currentTarget.classList.add('active');
+            currentTab = e.currentTarget.dataset.tab;
+            populateSelects();
+            updateUIForTab();
+            calculate();
+        });
+    });
+
+    swapBtn.addEventListener('click', () => {
+        const temp = fromUnitSelect.value;
+        fromUnitSelect.value = toUnitSelect.value;
+        toUnitSelect.value = temp;
+        calculate();
+    });
+
+    inputValueEl.addEventListener('input', calculate);
+    fromUnitSelect.addEventListener('change', calculate);
+    toUnitSelect.addEventListener('change', calculate);
+
+    // Tolerance basis radio buttons
+    const basisRadios = document.querySelectorAll('input[name="toleranceBasis"]');
+    basisRadios.forEach(radio => {
+        radio.addEventListener('change', updateCalibrationTable);
+    });
+
+    // Tolerance buttons
+    tolBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            tolBtns.forEach(b => b.classList.remove('active'));
+            customTolBtn.classList.remove('active');
+            customTolInput.classList.add('hidden');
+            
+            e.currentTarget.classList.add('active');
+            currentTolerance = parseFloat(e.currentTarget.dataset.tol);
+            updateCalibrationTable();
+        });
+    });
+
+    customTolBtn.addEventListener('click', () => {
+        tolBtns.forEach(b => b.classList.remove('active'));
+        customTolBtn.classList.add('active');
+        customTolInput.classList.remove('hidden');
+        customTolInput.focus();
+        
+        if (customTolInput.value) {
+            currentTolerance = parseFloat(customTolInput.value);
+            updateCalibrationTable();
+        }
+    });
+
+    customTolInput.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        if (!isNaN(val) && val >= 0) {
+            currentTolerance = val;
+            updateCalibrationTable();
+        }
+    });
+
+    // Copy to clipboard
+    copyBtn.addEventListener('click', async () => {
+        const textToCopy = `${resultValueEl.textContent} ${resultUnitLabel.textContent}`;
+        try {
+            await navigator.clipboard.writeText(textToCopy);
+            const originalHtml = copyBtn.innerHTML;
+            copyBtn.innerHTML = '<i class="fa-solid fa-check"></i> 복사됨';
+            setTimeout(() => {
+                copyBtn.innerHTML = originalHtml;
+            }, 2000);
+        } catch (err) {
+            console.error('Failed to copy text: ', err);
+        }
+    });
+
+    // Run init
+    init();
+});

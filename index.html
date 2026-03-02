@@ -1,14 +1,131 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Hello World</title>
-  <link href='/style.css' rel='stylesheet'>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>단위 변환기 - 토크, 압력, 온도</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts for better typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-  <h1>Hello, world!</h1>
-  <button onclick="console.log('hello');">Press me</button>
-  <script defer type="text/javascript" src="/main.js"></script>
+    <div class="app-container">
+        <!-- Tabs -->
+        <div class="tabs-container">
+            <button class="tab-btn active" data-tab="torque">
+                <i class="fa-solid fa-wrench"></i> 토크
+            </button>
+            <button class="tab-btn" data-tab="pressure">
+                <i class="fa-solid fa-gauge-high"></i> 압력
+            </button>
+            <button class="tab-btn" data-tab="temperature">
+                <i class="fa-solid fa-temperature-half"></i> 온도
+            </button>
+        </div>
+
+        <!-- Conversion Card -->
+        <div class="card conversion-card">
+            <div class="input-section">
+                <label for="inputValue" class="section-label">입력값 (최대 용량)</label>
+                <div class="input-wrapper">
+                    <input type="number" id="inputValue" value="100" placeholder="0">
+                    <span class="unit-label" id="inputUnitLabel">N·m</span>
+                </div>
+            </div>
+
+            <div class="unit-selection">
+                <div class="select-group">
+                    <label class="section-label">원본 단위</label>
+                    <select id="fromUnit" class="custom-select"></select>
+                </div>
+                
+                <button class="swap-btn" id="swapUnitsBtn" aria-label="단위 교체">
+                    <i class="fa-solid fa-arrow-right-arrow-left"></i>
+                </button>
+
+                <div class="select-group">
+                    <label class="section-label">변환 단위</label>
+                    <select id="toUnit" class="custom-select"></select>
+                </div>
+            </div>
+
+            <div class="result-section">
+                <div class="result-header">
+                    <span class="result-label">변환 결과</span>
+                    <button class="copy-btn" id="copyResultBtn">
+                        <i class="fa-regular fa-copy"></i> 복사
+                    </button>
+                </div>
+                <div class="result-value-wrapper">
+                    <span id="resultValue" class="result-number">1,000</span>
+                    <span id="resultUnitLabel" class="result-unit">dN·m</span>
+                </div>
+                <!-- Background icon placeholder -->
+                <i class="fa-solid fa-wrench bg-icon" id="resultBgIcon"></i>
+            </div>
+        </div>
+
+        <!-- Calibration Card (Visible only for Torque by default) -->
+        <div class="card calibration-card" id="calibrationCard">
+            <div class="calibration-header">
+                <div class="cal-title-section">
+                    <div class="cal-title">
+                        <i class="fa-solid fa-bullseye" style="color:#5c4bdb; margin-right:8px;"></i>
+                        교정 포인트 및 허용오차
+                    </div>
+                    <div class="basis-selection">
+                        <label class="basis-radio">
+                            <input type="radio" name="toleranceBasis" value="indicated" checked>
+                            <span class="radio-label">지시치 기준</span>
+                        </label>
+                        <label class="basis-radio">
+                            <input type="radio" name="toleranceBasis" value="fs">
+                            <span class="radio-label">FS(100%) 기준</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="tolerance-buttons">
+                    <button class="tol-btn" data-tol="2">2%</button>
+                    <button class="tol-btn active" data-tol="4">4%</button>
+                    <button class="tol-btn" data-tol="6">6%</button>
+                    <div class="custom-tol-wrapper">
+                        <button class="tol-btn custom-tol-btn" data-tol="custom">
+                            <i class="fa-solid fa-sliders"></i> 직접입력
+                        </button>
+                        <input type="number" id="customTolInput" class="custom-tol-input hidden" placeholder="%">
+                    </div>
+                </div>
+            </div>
+
+            <div class="transducer-recommendation" id="transducerRecommendation" style="margin-bottom: 1.5rem; padding: 1rem; background-color: #eeeafc; border-radius: 8px; font-size: 0.9rem;">
+                <div style="font-weight: 600; color: #5c4bdb; margin-bottom: 0.5rem;"><i class="fa-solid fa-plug-circle-check"></i> 권장 Transducer 모델</div>
+                <ul id="transducerList" style="margin-left: 1.5rem; color: #333; line-height: 1.4;">
+                    <li>추천 모델 없음</li>
+                </ul>
+            </div>
+
+            <div class="table-container">
+                <table class="calibration-table">
+                    <thead>
+                        <tr>
+                            <th>구분 (%)</th>
+                            <th>목표값</th>
+                            <th>최소 (MIN)</th>
+                            <th>최대 (MAX)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="calibrationTableBody">
+                        <!-- Rows generated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <script src="main.js"></script>
 </body>
 </html>
