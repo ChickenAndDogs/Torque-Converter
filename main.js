@@ -430,6 +430,11 @@ document.addEventListener('DOMContentLoaded', () => {
     rulerToggle.addEventListener('change', (e) => {
         if (e.target.checked) {
             rulerSettings.classList.remove('hidden');
+            // FS(100%) 기준 라디오 버튼 선택
+            const fsRadio = document.querySelector('input[name="toleranceBasis"][value="fs"]');
+            if (fsRadio) {
+                fsRadio.checked = true;
+            }
         } else {
             rulerSettings.classList.add('hidden');
         }
