@@ -101,6 +101,28 @@
                 </div>
             </div>
 
+            <div class="ruler-settings-toggle">
+                <label class="switch">
+                    <input type="checkbox" id="rulerToggle">
+                    <span class="slider round"></span>
+                </label>
+                <span class="toggle-label"><i class="fa-solid fa-ruler-horizontal"></i> 눈금 오차 시각화</span>
+            </div>
+
+            <div class="ruler-settings-container hidden" id="rulerSettings">
+                <div class="setting-group">
+                    <label for="mainInterval" class="setting-label">메인 눈금 간격 (예: 1, 10, 100)</label>
+                    <input type="number" id="mainInterval" value="10" min="0.1" step="any">
+                </div>
+                <div class="setting-group">
+                    <label for="subDivisions" class="setting-label">메인 눈금 내 세부 칸 수 (예: 5, 10)</label>
+                    <input type="number" id="subDivisions" value="10" min="1" step="1">
+                </div>
+                <div class="setting-info" id="rulerResolutionInfo">
+                    최소 눈금 단위: 1 N·m
+                </div>
+            </div>
+
             <div class="transducer-recommendation" id="transducerRecommendation" style="margin-bottom: 1.5rem; padding: 1rem; background-color: #eeeafc; border-radius: 8px; font-size: 0.9rem;">
                 <div style="font-weight: 600; color: #5c4bdb; margin-bottom: 0.5rem;"><i class="fa-solid fa-plug-circle-check"></i> 권장 Transducer 모델</div>
                 <ul id="transducerList" style="margin-left: 1.5rem; color: #333; line-height: 1.4;">
@@ -108,7 +130,7 @@
                 </ul>
             </div>
 
-            <div class="table-container">
+            <div class="table-container" style="overflow-x: auto;">
                 <table class="calibration-table">
                     <thead>
                         <tr>

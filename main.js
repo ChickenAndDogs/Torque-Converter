@@ -77,6 +77,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const customTolInput = document.getElementById('customTolInput');
     const calibrationTableBody = document.getElementById('calibrationTableBody');
 
+    // Ruler elements
+    const rulerToggle = document.getElementById('rulerToggle');
+    const rulerSettings = document.getElementById('rulerSettings');
+    const mainIntervalEl = document.getElementById('mainInterval');
+    const subDivisionsEl = document.getElementById('subDivisions');
+    const rulerResolutionInfo = document.getElementById('rulerResolutionInfo');
+
     // Initialization
     function init() {
         populateSelects();
@@ -204,10 +211,130 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td class="max-val">${formatFixed(max)}</td>
                 </tr>
             `;
+
+            // Ruler visualization row
+            if (rulerToggle.checked) {
+                html += `
+                <tr>
+                    <td colspan="4" style="padding: 0;">
+                        <div class="ruler-container">
+                            <canvas id="ruler-${percent}" class="ruler-canvas" width="400" height="60"></canvas>
+                            <div class="ruler-text" id="ruler-text-${percent}"></div>
+                        </div>
+                    </td>
+                </tr>
+                `;
+            }
         });
 
         calibrationTableBody.innerHTML = html;
+        
+        // Draw rulers
+        if (rulerToggle.checked) {
+            const main = parseFloat(mainIntervalEl.value) || 10;
+            const sub = parseInt(subDivisionsEl.value) || 10;
+            const resolution = main / sub;
+
+            points.forEach(percent => {
+                const target = val * (percent / 100);
+                let toleranceVal = 0;
+                if (basis === 'fs') {
+                    toleranceVal = val * (currentTolerance / 100);
+                } else {
+                    toleranceVal = target * (currentTolerance / 100);
+                }
+
+                drawRuler(`ruler-${percent}`, target, toleranceVal, resolution, unit);
+                
+                // Update text
+                const ticks = toleranceVal / resolution;
+                const textEl = document.getElementById(`ruler-text-${percent}`);
+                if (textEl) {
+                    textEl.innerHTML = `허용 오차: <strong>±${formatFixed(ticks, 1)} 칸</strong>`;
+                }
+            });
+        }
+
         updateTransducerRecommendation();
+    }
+
+    function drawRuler(canvasId, target, tolerance, resolution, unit) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+
+        ctx.clearRect(0, 0, width, height);
+
+        // We want to show a range that covers the target and the tolerance plus some padding
+        // Let's show roughly target - (tolerance*3) to target + (tolerance*3)
+        // Or at least a fixed number of ticks, e.g., 20 ticks total.
+        const totalTicksToShow = 20;
+        const rangeView = totalTicksToShow * resolution;
+        const minValView = target - (rangeView / 2);
+        const maxValView = target + (rangeView / 2);
+
+        // Scale factor: pixels per unit
+        const scaleX = width / rangeView;
+
+        // Draw Tolerance Band
+        const tolMinX = (target - tolerance - minValView) * scaleX;
+        const tolMaxX = (target + tolerance - minValView) * scaleX;
+        
+        ctx.fillStyle = 'rgba(24, 128, 56, 0.15)'; // Success color light
+        ctx.fillRect(tolMinX, 0, tolMaxX - tolMinX, height);
+        
+        // Draw tick marks
+        // Find the first main interval tick before minValView
+        const mainInterval = resolution * parseInt(subDivisionsEl.value || 10);
+        let currentMainTick = Math.floor(minValView / mainInterval) * mainInterval;
+
+        ctx.strokeStyle = '#86868b';
+        ctx.lineWidth = 1;
+        ctx.fillStyle = '#86868b';
+        ctx.font = '10px sans-serif';
+        ctx.textAlign = 'center';
+
+        while (currentMainTick <= maxValView) {
+            // Draw sub ticks for this main tick
+            for (let i = 0; i < parseInt(subDivisionsEl.value || 10); i++) {
+                const tickVal = currentMainTick + (i * resolution);
+                if (tickVal >= minValView && tickVal <= maxValView) {
+                    const x = (tickVal - minValView) * scaleX;
+                    const isMain = i === 0;
+                    const tickHeight = isMain ? 25 : 15;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(x, height);
+                    ctx.lineTo(x, height - tickHeight);
+                    
+                    if (isMain) {
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+                        ctx.lineWidth = 1;
+                        ctx.fillText(formatFixed(tickVal, tickVal < 10 ? 1 : 0), x, height - 30);
+                    } else {
+                        ctx.stroke();
+                    }
+                }
+            }
+            currentMainTick += mainInterval;
+        }
+
+        // Draw Target Line
+        const targetX = (target - minValView) * scaleX;
+        ctx.strokeStyle = 'var(--primary-color, #5c4bdb)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(targetX, 0);
+        ctx.lineTo(targetX, height);
+        ctx.stroke();
+        
+        // Draw Target Value
+        ctx.fillStyle = 'var(--primary-color, #5c4bdb)';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillText(formatFixed(target), targetX, 15);
     }
 
     // Update Transducer Recommendation
@@ -279,6 +406,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Event Listeners
+    rulerToggle.addEventListener('change', (e) => {
+        if (e.target.checked) {
+            rulerSettings.classList.remove('hidden');
+        } else {
+            rulerSettings.classList.add('hidden');
+        }
+        updateCalibrationTable();
+    });
+
+    [mainIntervalEl, subDivisionsEl].forEach(el => {
+        el.addEventListener('input', () => {
+            updateRulerInfo();
+            updateCalibrationTable();
+        });
+    });
+
+    function updateRulerInfo() {
+        const main = parseFloat(mainIntervalEl.value);
+        const sub = parseInt(subDivisionsEl.value);
+        if (!isNaN(main) && !isNaN(sub) && sub > 0) {
+            const resolution = main / sub;
+            const unit = fromUnitSelect.value;
+            rulerResolutionInfo.textContent = `최소 눈금 단위: ${formatFixed(resolution, resolution < 1 ? 3 : 1)} ${unit}`;
+        }
+    }
+
     tabBtns.forEach(btn => {
         btn.addEventListener('click', (e) => {
             tabBtns.forEach(b => b.classList.remove('active'));
