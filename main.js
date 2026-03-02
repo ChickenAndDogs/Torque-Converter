@@ -182,9 +182,18 @@ document.addEventListener('DOMContentLoaded', () => {
         // Determine tolerance basis
         const basisRadio = document.querySelector('input[name="toleranceBasis"]:checked');
         const basis = basisRadio ? basisRadio.value : 'indicated';
+        
+        const main = parseFloat(mainIntervalEl.value) || 10;
+        const isRulerActive = rulerToggle.checked;
 
         points.forEach(percent => {
-            const target = val * (percent / 100);
+            let target = val * (percent / 100);
+            
+            // Snap target to nearest main interval if ruler is active
+            if (isRulerActive && !isNaN(main) && main > 0) {
+                target = Math.round(target / main) * main;
+            }
+
             let toleranceVal = 0;
 
             if (basis === 'fs') {
@@ -198,9 +207,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const min = target - toleranceVal;
             const max = target + toleranceVal;
 
+            // ... (rest of the row HTML generation)
+            let actualPercentText = isRulerActive ? `~${percent}%` : `${percent}%`;
+            if (isRulerActive) {
+                const actualPercent = (target / val) * 100;
+                actualPercentText = `<span style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:2px;">(목표: ${percent}%)</span>${formatFixed(actualPercent, 1)}%`;
+            }
+
             html += `
                 <tr>
-                    <td><span class="cal-percent-badge">${percent}%</span></td>
+                    <td><span class="cal-percent-badge" style="display:inline-block; text-align:center;">${actualPercentText}</span></td>
                     <td>
                         <div class="target-val">
                             ${formatFixed(target)}
@@ -213,7 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
 
             // Ruler visualization row
-            if (rulerToggle.checked) {
+            if (isRulerActive) {
                 html += `
                 <tr>
                     <td colspan="4" style="padding: 0;">
@@ -230,13 +246,16 @@ document.addEventListener('DOMContentLoaded', () => {
         calibrationTableBody.innerHTML = html;
         
         // Draw rulers
-        if (rulerToggle.checked) {
-            const main = parseFloat(mainIntervalEl.value) || 10;
+        if (isRulerActive) {
             const sub = parseInt(subDivisionsEl.value) || 10;
             const resolution = main / sub;
 
             points.forEach(percent => {
-                const target = val * (percent / 100);
+                let target = val * (percent / 100);
+                if (!isNaN(main) && main > 0) {
+                    target = Math.round(target / main) * main;
+                }
+                
                 let toleranceVal = 0;
                 if (basis === 'fs') {
                     toleranceVal = val * (currentTolerance / 100);
@@ -244,7 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     toleranceVal = target * (currentTolerance / 100);
                 }
 
-                drawRuler(`ruler-${percent}`, target, toleranceVal, resolution, unit);
+                drawRuler(`ruler-${percent}`, target, toleranceVal, resolution, unit, main);
                 
                 // Update text
                 const ticks = toleranceVal / resolution;
@@ -258,7 +277,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateTransducerRecommendation();
     }
 
-    function drawRuler(canvasId, target, tolerance, resolution, unit) {
+    function drawRuler(canvasId, target, tolerance, resolution, unit, mainIntervalParam) {
         const canvas = document.getElementById(canvasId);
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
@@ -287,7 +306,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Draw tick marks
         // Find the first main interval tick before minValView
-        const mainInterval = resolution * parseInt(subDivisionsEl.value || 10);
+        const mainInterval = mainIntervalParam || (resolution * parseInt(subDivisionsEl.value || 10));
         let currentMainTick = Math.floor(minValView / mainInterval) * mainInterval;
 
         ctx.strokeStyle = '#86868b';
