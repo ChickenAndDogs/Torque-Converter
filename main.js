@@ -189,8 +189,8 @@ document.addEventListener('DOMContentLoaded', () => {
         points.forEach(percent => {
             let target = val * (percent / 100);
             
-            // Snap target to nearest main interval if ruler is active
-            if (isRulerActive && !isNaN(main) && main > 0) {
+            // Snap target to nearest main interval if ruler is active, EXCEPT for 100%
+            if (isRulerActive && !isNaN(main) && main > 0 && percent !== 100) {
                 target = Math.round(target / main) * main;
             }
 
@@ -209,9 +209,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // ... (rest of the row HTML generation)
             let actualPercentText = isRulerActive ? `~${percent}%` : `${percent}%`;
-            if (isRulerActive) {
+            if (isRulerActive && percent !== 100) {
                 const actualPercent = (target / val) * 100;
                 actualPercentText = `<span style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:2px;">(목표: ${percent}%)</span>${formatFixed(actualPercent, 1)}%`;
+            } else if (isRulerActive && percent === 100) {
+                 actualPercentText = `${percent}%`;
             }
 
             html += `
@@ -252,7 +254,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             points.forEach(percent => {
                 let target = val * (percent / 100);
-                if (!isNaN(main) && main > 0) {
+                if (!isNaN(main) && main > 0 && percent !== 100) {
                     target = Math.round(target / main) * main;
                 }
                 
