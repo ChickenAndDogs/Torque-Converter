@@ -435,6 +435,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (fsRadio) {
                 fsRadio.checked = true;
             }
+            // 2% 오차 버튼 선택 및 설정
+            const tol2Btn = document.querySelector('.tol-btn[data-tol="2"]');
+            if (tol2Btn) {
+                tolBtns.forEach(b => b.classList.remove('active'));
+                customTolBtn.classList.remove('active');
+                customTolInput.classList.add('hidden');
+                tol2Btn.classList.add('active');
+                currentTolerance = 2;
+            }
         } else {
             rulerSettings.classList.add('hidden');
         }
