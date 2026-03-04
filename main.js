@@ -5,15 +5,15 @@ document.addEventListener('DOMContentLoaded', () => {
             icon: 'fa-wrench',
             base: 'N·m',
             list: [
+                { id: 'lbf·ft', name: 'lbf·ft', factor: 0.737562 },
+                { id: 'lbf·in', name: 'lbf·in', factor: 8.85075 },
+                { id: 'ozf·in', name: 'ozf·in', factor: 141.612 },
                 { id: 'N·m', name: 'N·m', factor: 1 },
                 { id: 'dN·m', name: 'dN·m', factor: 10 },
                 { id: 'cN·m', name: 'cN·m', factor: 100 },
                 { id: 'kgf·m', name: 'kgf·m', factor: 0.101972 },
                 { id: 'kgf·cm', name: 'kgf·cm', factor: 10.1972 },
-                { id: 'gf·cm', name: 'gf·cm', factor: 10197.2 },
-                { id: 'lbf·ft', name: 'lbf·ft', factor: 0.737562 },
-                { id: 'lbf·in', name: 'lbf·in', factor: 8.85075 },
-                { id: 'ozf·in', name: 'ozf·in', factor: 141.612 }
+                { id: 'gf·cm', name: 'gf·cm', factor: 10197.2 }
             ]
         },
         pressure: {
