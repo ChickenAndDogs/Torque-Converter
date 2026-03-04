@@ -126,7 +126,13 @@
             </div>
 
             <div class="transducer-recommendation" id="transducerRecommendation" style="margin-bottom: 1.5rem; padding: 1rem; background-color: #eeeafc; border-radius: 8px; font-size: 0.9rem;">
-                <div style="font-weight: 600; color: #5c4bdb; margin-bottom: 0.5rem;"><i class="fa-solid fa-plug-circle-check"></i> 권장 Transducer 모델</div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <div style="font-weight: 600; color: #5c4bdb;"><i class="fa-solid fa-plug-circle-check"></i> 권장 Transducer 모델</div>
+                    <label style="display: flex; align-items: center; cursor: pointer; font-size: 0.8rem; color: #666;">
+                        <input type="checkbox" id="transducer10Rule" checked style="margin-right: 0.3rem;">
+                        최대범위 10% 기준
+                    </label>
+                </div>
                 <ul id="transducerList" style="margin-left: 1.5rem; color: #333; line-height: 1.4;">
                     <li>추천 모델 없음</li>
                 </ul>

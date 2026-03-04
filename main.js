@@ -50,6 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
         { model: '2000-10-02', specRange: '10-125 Ft Lbs', minNm: 13.5582, maxNm: 169.4771 },
         { model: '2000-11-02', specRange: '20-250 Ft Lbs', minNm: 27.1164, maxNm: 338.9542 },
         { model: '2000-400-02', specRange: '4 In Lbs - 250 Ft Lbs', minNm: 0.4519, maxNm: 338.9542 },
+        { model: '2500-400-02', specRange: '40 In Oz - 400 In Lbs', minNm: 0.2825, maxNm: 45.1939 },
         { model: '2000-12-02', specRange: '60-600 Ft Lbs', minNm: 81.3490, maxNm: 813.4901 },
         { model: '2000-13-02', specRange: '100-1000 Ft Lbs', minNm: 135.5817, maxNm: 1355.8169 },
         { model: '2000-14-02', specRange: '200-2000 Ft Lbs', minNm: 271.1634, maxNm: 2711.6336 }
@@ -365,6 +366,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const val = parseFloat(inputValueEl.value);
         const fromId = fromUnitSelect.value;
         const transducerListEl = document.getElementById('transducerList');
+        const use10Rule = document.getElementById('transducer10Rule')?.checked;
 
         if (isNaN(val) || val <= 0) {
             transducerListEl.innerHTML = '<li>올바른 값을 입력해주세요.</li>';
@@ -376,11 +378,22 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (!fromUnit) return;
 
-        // Calculate max and min required N.m (20% to 100% of the input value)
-        const maxNm = (val / fromUnit.factor);
-        const minNm = maxNm * 0.2;
+        // Calculate max required N.m (input value)
+        const targetNm = (val / fromUnit.factor);
+        // Min required N.m (20% of the input value)
+        const requiredMinNm = targetNm * 0.2;
 
-        const matches = transducers.filter(t => t.minNm <= minNm && t.maxNm >= maxNm);
+        const matches = transducers.filter(t => {
+            // Basic condition: Transducer must cover the input value (targetNm)
+            const coversTarget = t.minNm <= targetNm && t.maxNm >= targetNm;
+            if (!coversTarget) return false;
+
+            // Transducer must also cover down to 20% of the input value (requiredMinNm)
+            // But if 10% rule is on, the transducer's effective minimum is 10% of its own maxNm
+            const effectiveMinNm = use10Rule ? (t.maxNm * 0.1) : t.minNm;
+            
+            return effectiveMinNm <= requiredMinNm;
+        });
 
         if (matches.length === 0) {
             transducerListEl.innerHTML = '<li>해당 범위를 만족하는 권장 모델이 없습니다.</li>';
@@ -430,10 +443,10 @@ document.addEventListener('DOMContentLoaded', () => {
     rulerToggle.addEventListener('change', (e) => {
         if (e.target.checked) {
             rulerSettings.classList.remove('hidden');
-            // FS(100%) 기준 라디오 버튼 선택
-            const fsRadio = document.querySelector('input[name="toleranceBasis"][value="fs"]');
-            if (fsRadio) {
-                fsRadio.checked = true;
+            // 지시치 기준 라디오 버튼 선택
+            const indicatedRadio = document.querySelector('input[name="toleranceBasis"][value="indicated"]');
+            if (indicatedRadio) {
+                indicatedRadio.checked = true;
             }
             // 2% 오차 버튼 선택 및 설정
             const tol2Btn = document.querySelector('.tol-btn[data-tol="2"]');
@@ -449,6 +462,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         updateCalibrationTable();
     });
+
+    const transducer10Rule = document.getElementById('transducer10Rule');
+    if (transducer10Rule) {
+        transducer10Rule.addEventListener('change', () => {
+            updateTransducerRecommendation();
+        });
+    }
 
     [mainIntervalEl, subDivisionsEl].forEach(el => {
         el.addEventListener('input', () => {
