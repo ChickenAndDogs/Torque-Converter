@@ -396,10 +396,10 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (!fromUnit) return;
 
-        // Calculate max required N.m (input value)
         const targetNm = (val / fromUnit.factor);
         // Min required N.m (20% of the input value)
         const requiredMinNm = targetNm * 0.2;
+        const epsilon = 0.0001; // Small tolerance for floating point comparison
 
         const matches = [];
 
@@ -407,13 +407,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (t.isMulti) {
                 // Check each sub-range of the multi-range transducer
                 t.ranges.forEach(r => {
-                    const coversTarget = r.minNm <= targetNm && r.maxNm >= targetNm;
+                    const coversTarget = (r.minNm - epsilon) <= targetNm && (r.maxNm + epsilon) >= targetNm;
                     if (!coversTarget) return;
 
                     // Apply 10% rule to the sub-range's maxNm if active
                     const effectiveMinNm = use10Rule ? (r.maxNm * 0.1) : r.minNm;
                     
-                    if (effectiveMinNm <= requiredMinNm) {
+                    if (effectiveMinNm <= requiredMinNm + epsilon) {
                         matches.push({
                             model: `${t.model} (${r.specRange})`,
                             specRange: r.specRange,
@@ -423,12 +423,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 });
             } else {
-                const coversTarget = t.minNm <= targetNm && t.maxNm >= targetNm;
+                const coversTarget = (t.minNm - epsilon) <= targetNm && (t.maxNm + epsilon) >= targetNm;
                 if (!coversTarget) return;
 
                 const effectiveMinNm = use10Rule ? (t.maxNm * 0.1) : t.minNm;
                 
-                if (effectiveMinNm <= requiredMinNm) {
+                if (effectiveMinNm <= requiredMinNm + epsilon) {
                     matches.push(t);
                 }
             }
