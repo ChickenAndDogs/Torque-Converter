@@ -49,8 +49,26 @@ document.addEventListener('DOMContentLoaded', () => {
         { model: '2000-8-02', specRange: '80-1000 In Lbs', minNm: 9.0387, maxNm: 112.9848 },
         { model: '2000-10-02', specRange: '10-125 Ft Lbs', minNm: 13.5582, maxNm: 169.4771 },
         { model: '2000-11-02', specRange: '20-250 Ft Lbs', minNm: 27.1164, maxNm: 338.9542 },
-        { model: '2000-400-02', specRange: '4 In Lbs - 250 Ft Lbs', minNm: 0.4519, maxNm: 338.9542 },
-        { model: '2500-400-02', specRange: '40 In Oz - 400 In Lbs', minNm: 0.2825, maxNm: 45.1939 },
+        { 
+            model: '2000-400-02', 
+            isMulti: true,
+            ranges: [
+                { specRange: '4-50 In Lbs', minNm: 0.4519, maxNm: 5.6493 },
+                { specRange: '30-400 In Lbs', minNm: 3.3895, maxNm: 45.1940 },
+                { specRange: '80-1000 In Lbs', minNm: 9.0387, maxNm: 112.9848 },
+                { specRange: '20-250 Ft Lbs', minNm: 27.1164, maxNm: 338.9542 }
+            ]
+        },
+        { 
+            model: '2500-400-02', 
+            isMulti: true,
+            ranges: [
+                { specRange: '40-400 In Oz', minNm: 0.2825, maxNm: 2.8248 },
+                { specRange: '3.75-50 In Lbs', minNm: 0.4237, maxNm: 5.6493 },
+                { specRange: '10-150 In Lbs', minNm: 1.1298, maxNm: 16.9478 },
+                { specRange: '30-400 In Lbs', minNm: 3.3895, maxNm: 45.1940 }
+            ]
+        },
         { model: '2000-12-02', specRange: '60-600 Ft Lbs', minNm: 81.3490, maxNm: 813.4901 },
         { model: '2000-13-02', specRange: '100-1000 Ft Lbs', minNm: 135.5817, maxNm: 1355.8169 },
         { model: '2000-14-02', specRange: '200-2000 Ft Lbs', minNm: 271.1634, maxNm: 2711.6336 }
@@ -383,27 +401,45 @@ document.addEventListener('DOMContentLoaded', () => {
         // Min required N.m (20% of the input value)
         const requiredMinNm = targetNm * 0.2;
 
-        const matches = transducers.filter(t => {
-            // Basic condition: Transducer must cover the input value (targetNm)
-            const coversTarget = t.minNm <= targetNm && t.maxNm >= targetNm;
-            if (!coversTarget) return false;
+        const matches = [];
 
-            // Transducer must also cover down to 20% of the input value (requiredMinNm)
-            // But if 10% rule is on, the transducer's effective minimum is 10% of its own maxNm
-            const effectiveMinNm = use10Rule ? (t.maxNm * 0.1) : t.minNm;
-            
-            return effectiveMinNm <= requiredMinNm;
+        transducers.forEach(t => {
+            if (t.isMulti) {
+                // Check each sub-range of the multi-range transducer
+                t.ranges.forEach(r => {
+                    const coversTarget = r.minNm <= targetNm && r.maxNm >= targetNm;
+                    if (!coversTarget) return;
+
+                    // Apply 10% rule to the sub-range's maxNm if active
+                    const effectiveMinNm = use10Rule ? (r.maxNm * 0.1) : r.minNm;
+                    
+                    if (effectiveMinNm <= requiredMinNm) {
+                        matches.push({
+                            model: `${t.model} (${r.specRange})`,
+                            specRange: r.specRange,
+                            minNm: r.minNm,
+                            maxNm: r.maxNm
+                        });
+                    }
+                });
+            } else {
+                const coversTarget = t.minNm <= targetNm && t.maxNm >= targetNm;
+                if (!coversTarget) return;
+
+                const effectiveMinNm = use10Rule ? (t.maxNm * 0.1) : t.minNm;
+                
+                if (effectiveMinNm <= requiredMinNm) {
+                    matches.push(t);
+                }
+            }
         });
 
         if (matches.length === 0) {
             transducerListEl.innerHTML = '<li>해당 범위를 만족하는 권장 모델이 없습니다.</li>';
         } else {
             transducerListEl.innerHTML = matches.map(t => {
-                // Convert the transducer's min/max Nm back to the user's selected unit for display
                 const convertedMin = t.minNm * fromUnit.factor;
                 const convertedMax = t.maxNm * fromUnit.factor;
-                
-                // Format nicely (remove excessive decimals if large number, else keep some precision)
                 const formattedMin = formatFixed(convertedMin, convertedMin < 10 ? 3 : 1);
                 const formattedMax = formatFixed(convertedMax, convertedMax < 10 ? 3 : 1);
 

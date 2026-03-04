@@ -125,15 +125,20 @@
                 </div>
             </div>
 
-            <div class="transducer-recommendation" id="transducerRecommendation" style="margin-bottom: 1.5rem; padding: 1rem; background-color: #eeeafc; border-radius: 8px; font-size: 0.9rem;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                    <div style="font-weight: 600; color: #5c4bdb;"><i class="fa-solid fa-plug-circle-check"></i> 권장 Transducer 모델</div>
-                    <label style="display: flex; align-items: center; cursor: pointer; font-size: 0.8rem; color: #666;">
-                        <input type="checkbox" id="transducer10Rule" checked style="margin-right: 0.3rem;">
-                        최대범위 10% 기준
-                    </label>
+            <div class="transducer-recommendation" id="transducerRecommendation" style="margin-bottom: 1.5rem; padding: 1.25rem; background-color: #f3f0ff; border-radius: var(--radius-lg); border: 1px solid #e0d8ff;">
+                <div style="display: flex; align-items: center; margin-bottom: 1rem; color: #5c4bdb; font-weight: 600;">
+                    <i class="fa-solid fa-plug-circle-check" style="margin-right: 8px;"></i> 권장 Transducer 모델
                 </div>
-                <ul id="transducerList" style="margin-left: 1.5rem; color: #333; line-height: 1.4;">
+                
+                <div class="ruler-settings-toggle" style="margin-top: 0; margin-bottom: 1rem; border-top: none; padding-top: 0;">
+                    <label class="switch">
+                        <input type="checkbox" id="transducer10Rule" checked>
+                        <span class="slider round"></span>
+                    </label>
+                    <span class="toggle-label">최대범위 10% 기준 적용 (권장)</span>
+                </div>
+
+                <ul id="transducerList" style="margin-left: 1.5rem; color: #333; line-height: 1.6; font-size: 0.9rem;">
                     <li>추천 모델 없음</li>
                 </ul>
             </div>
