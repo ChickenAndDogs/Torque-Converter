@@ -438,12 +438,20 @@ document.addEventListener('DOMContentLoaded', () => {
             transducerListEl.innerHTML = '<li>해당 범위를 만족하는 권장 모델이 없습니다.</li>';
         } else {
             transducerListEl.innerHTML = matches.map(t => {
-                const convertedMin = t.minNm * fromUnit.factor;
+                // Calculate effective min/max based on 10% rule if active
+                const effectiveMinNm = use10Rule ? (t.maxNm * 0.1) : t.minNm;
+                
+                // Convert to user's selected unit
+                const convertedMin = effectiveMinNm * fromUnit.factor;
                 const convertedMax = t.maxNm * fromUnit.factor;
+                
                 const formattedMin = formatFixed(convertedMin, convertedMin < 10 ? 3 : 1);
                 const formattedMax = formatFixed(convertedMax, convertedMax < 10 ? 3 : 1);
 
-                return `<li><span style="color:var(--primary-color);font-weight:bold;">${t.model}</span> : ${t.specRange} (${formattedMin} - ${formattedMax} ${fromId})</li>`;
+                // Create a label for the rule being applied
+                const ruleLabel = use10Rule ? '<span style="font-size:0.7rem; background:#5c4bdb; color:white; padding:1px 4px; border-radius:3px; margin-left:5px; vertical-align:middle;">10% 룰 적용됨</span>' : '';
+
+                return `<li><span style="color:var(--primary-color);font-weight:bold;">${t.model}</span> : ${formattedMin} - ${formattedMax} ${fromId}${ruleLabel}</li>`;
             }).join('');
         }
     }
